@@ -33,6 +33,33 @@
   background-color: #ffffff;
 }
 
+/* ── Geolocation error banner ── */
+.geo-error-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-error-bg);
+  color: var(--color-error-dark);
+  border-radius: var(--rounded);
+  font: var(--text-body-sm);
+  font-weight: 500;
+}
+
+/* ── "My Location" badge in route planner ── */
+.planner-location-badge {
+  height: 36px;
+  background: var(--color-primary-subtle);
+  border: 1px solid var(--color-primary-ring-light);
+  border-radius: var(--rounded);
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  font: var(--text-body-md);
+  color: var(--color-primary-dark);
+  font-weight: 600;
+}
+
 .sidebar-header-top {
   display: flex;
   align-items: center;

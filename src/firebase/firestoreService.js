@@ -8,14 +8,15 @@ import {
   deleteDoc,
   onSnapshot,
   query,
+  where,
   serverTimestamp,
   increment,
   writeBatch,
 } from 'firebase/firestore';
-import { db, isFirebaseConfigured } from './config';
-import { events as seedEvents } from '../data/events';
-import { lostFoundItems as seedLostFound } from '../data/lostFound';
-import { notifications as seedNotifications } from '../data/notifications';
+import { db, isFirebaseConfigured } from './config.js';
+import { events as seedEvents } from '../data/events.js';
+import { lostFoundItems as seedLostFound } from '../data/lostFound.js';
+import { notifications as seedNotifications } from '../data/notifications.js';
 
 // --- EVENTS ---
 
@@ -238,6 +239,8 @@ export async function updateLostFoundStatusInDb(itemId, status) {
 
 // --- NOTIFICATIONS ---
 
+// --- NOTIFICATIONS ---
+
 /**
  * Seed initial notifications for a user in Firestore
  */
@@ -245,18 +248,31 @@ export async function seedInitialNotificationsIfEmpty(uid) {
   if (!isFirebaseConfigured || !db || !uid) return;
 
   try {
-    const notifsRef = collection(db, 'users', uid, 'notifications');
-    const snapshot = await getDocs(notifsRef);
+    const notifsRef = collection(db, 'notifications');
+    const q = query(notifsRef, where('userId', '==', uid));
+    const snapshot = await getDocs(q);
+
     if (snapshot.empty) {
       const batch = writeBatch(db);
       seedNotifications.forEach((n) => {
-        const docRef = doc(db, 'users', uid, 'notifications', n.id);
+        const docRef = doc(collection(db, 'notifications'));
+        const typeMapped = n.type === 'campus' ? 'announcement' : n.type;
         batch.set(docRef, {
-          ...n,
+          userId: uid,
+          title: n.title,
+          message: n.message,
+          type: typeMapped,
+          read: n.read || false,
           createdAt: serverTimestamp(),
+          timestamp: n.timestamp || new Date().toISOString(),
+          relatedId: n.actionUrl ? n.actionUrl.split('/').pop() || null : null,
+          relatedType: typeMapped,
+          actionUrl: n.actionUrl || null,
+          icon: n.icon || 'Bell',
         });
       });
       await batch.commit();
+      console.log('Successfully seeded user notifications into Firestore.');
     }
   } catch (err) {
     console.warn('Could not seed user notifications:', err?.message);
@@ -264,34 +280,90 @@ export async function seedInitialNotificationsIfEmpty(uid) {
 }
 
 /**
- * Real-time subscription to a user's notifications
+ * Create a new notification for a specific user in Firestore
  */
-export function subscribeToNotifications(uid, callback) {
+export async function createNotificationInDb(notif) {
+  if (!notif?.userId) return null;
+
+  const typeMapped = notif.type === 'campus' ? 'announcement' : (notif.type || 'system');
+  const payload = {
+    userId: notif.userId,
+    title: notif.title || 'Campus Notification',
+    message: notif.message || '',
+    type: typeMapped,
+    read: false,
+    createdAt: serverTimestamp(),
+    timestamp: new Date().toISOString(),
+    relatedId: notif.relatedId || null,
+    relatedType: notif.relatedType || typeMapped,
+    actionUrl: notif.actionUrl || null,
+    icon: notif.icon || 'Bell',
+  };
+
+  if (!isFirebaseConfigured || !db) {
+    return { id: `notif_${Date.now()}`, ...payload };
+  }
+
+  try {
+    const notifsRef = collection(db, 'notifications');
+    const docRef = await addDoc(notifsRef, payload);
+    return {
+      id: docRef.id,
+      ...payload,
+    };
+  } catch (err) {
+    console.error('Error creating notification in Firestore:', err);
+    return { id: `notif_${Date.now()}`, ...payload };
+  }
+}
+
+/**
+ * Real-time subscription to a user's notifications in Firestore
+ */
+export function subscribeToNotifications(uid, callback, onError) {
   if (!isFirebaseConfigured || !db || !uid) {
-    callback(seedNotifications);
+    const fallbackNotifs = seedNotifications.map((n) => ({
+      ...n,
+      userId: uid || 'usr_001',
+      type: n.type === 'campus' ? 'announcement' : n.type,
+      relatedId: n.actionUrl ? n.actionUrl.split('/').pop() || null : null,
+      relatedType: n.type,
+      createdAt: n.timestamp || new Date().toISOString(),
+    }));
+    callback(fallbackNotifs);
     return () => {};
   }
 
-  const notifsRef = collection(db, 'users', uid, 'notifications');
+  const notifsRef = collection(db, 'notifications');
+  const q = query(notifsRef, where('userId', '==', uid));
 
   return onSnapshot(
-    notifsRef,
+    q,
     (snapshot) => {
       if (snapshot.empty) {
         seedInitialNotificationsIfEmpty(uid);
-        callback(seedNotifications);
+        callback([]);
       } else {
-        const notifs = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }));
-        // Sort by timestamp descending
-        notifs.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+        const notifs = snapshot.docs.map((d) => {
+          const data = d.data();
+          const timestamp = data.createdAt?.toDate
+            ? data.createdAt.toDate().toISOString()
+            : data.timestamp || data.createdAt || new Date().toISOString();
+          return {
+            id: d.id,
+            ...data,
+            timestamp,
+          };
+        });
+
+        // Sort descending: newest notifications first
+        notifs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         callback(notifs);
       }
     },
     (err) => {
-      console.warn('Firestore notifications listener error:', err?.message);
+      console.warn('Firestore notifications listener error, using fallback:', err?.message);
+      onError?.(err);
       callback(seedNotifications);
     }
   );
@@ -301,13 +373,24 @@ export function subscribeToNotifications(uid, callback) {
  * Mark a notification as read
  */
 export async function markNotificationReadInDb(uid, notifId) {
-  if (!isFirebaseConfigured || !db || !uid || !notifId) return;
+  if (!isFirebaseConfigured || !db || !notifId) return;
 
   try {
-    const notifRef = doc(db, 'users', uid, 'notifications', notifId);
-    await updateDoc(notifRef, { read: true });
+    const notifRef = doc(db, 'notifications', notifId);
+    await updateDoc(notifRef, {
+      read: true,
+      updatedAt: serverTimestamp(),
+    });
   } catch (err) {
-    console.error('Error marking notification read in Firestore:', err);
+    // Fallback attempt to subcollection if created under user profile
+    try {
+      if (uid) {
+        const subRef = doc(db, 'users', uid, 'notifications', notifId);
+        await updateDoc(subRef, { read: true, updatedAt: serverTimestamp() });
+      }
+    } catch (fallbackErr) {
+      console.error('Error marking notification read in Firestore:', fallbackErr);
+    }
   }
 }
 
@@ -315,13 +398,16 @@ export async function markNotificationReadInDb(uid, notifId) {
  * Mark all notifications as read
  */
 export async function markAllNotificationsReadInDb(uid, notifIds = []) {
-  if (!isFirebaseConfigured || !db || !uid || notifIds.length === 0) return;
+  if (!isFirebaseConfigured || !db || notifIds.length === 0) return;
 
   try {
     const batch = writeBatch(db);
     notifIds.forEach((id) => {
-      const notifRef = doc(db, 'users', uid, 'notifications', id);
-      batch.update(notifRef, { read: true });
+      const notifRef = doc(db, 'notifications', id);
+      batch.update(notifRef, {
+        read: true,
+        updatedAt: serverTimestamp(),
+      });
     });
     await batch.commit();
   } catch (err) {
@@ -333,13 +419,20 @@ export async function markAllNotificationsReadInDb(uid, notifIds = []) {
  * Delete a notification
  */
 export async function deleteNotificationFromDb(uid, notifId) {
-  if (!isFirebaseConfigured || !db || !uid || !notifId) return;
+  if (!isFirebaseConfigured || !db || !notifId) return;
 
   try {
-    const notifRef = doc(db, 'users', uid, 'notifications', notifId);
+    const notifRef = doc(db, 'notifications', notifId);
     await deleteDoc(notifRef);
   } catch (err) {
-    console.error('Error deleting notification from Firestore:', err);
+    if (uid) {
+      try {
+        const subRef = doc(db, 'users', uid, 'notifications', notifId);
+        await deleteDoc(subRef);
+      } catch (fallbackErr) {
+        console.error('Error deleting notification from Firestore:', fallbackErr);
+      }
+    }
   }
 }
 
@@ -347,12 +440,12 @@ export async function deleteNotificationFromDb(uid, notifId) {
  * Clear all notifications
  */
 export async function clearNotificationsFromDb(uid, notifIds = []) {
-  if (!isFirebaseConfigured || !db || !uid || notifIds.length === 0) return;
+  if (!isFirebaseConfigured || !db || notifIds.length === 0) return;
 
   try {
     const batch = writeBatch(db);
     notifIds.forEach((id) => {
-      const notifRef = doc(db, 'users', uid, 'notifications', id);
+      const notifRef = doc(db, 'notifications', id);
       batch.delete(notifRef);
     });
     await batch.commit();

@@ -8,6 +8,7 @@ import {
   subscribeToLostFound,
   subscribeToUserRsvps,
   subscribeToNotifications,
+  createNotificationInDb,
   addLostFoundItemToDb,
   toggleEventRsvpInDb,
   markNotificationReadInDb,
@@ -102,15 +103,33 @@ export function CampusDataProvider({ children }) {
     return () => unsubscribe();
   }, [uid]);
 
+  // Real-time notifications state
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationsError, setNotificationsError] = useState(null);
+
   // 4. Subscribe to real-time user Notifications
   useEffect(() => {
-    if (!uid) return;
-    const unsubscribe = subscribeToNotifications(uid, (liveNotifs) => {
-      if (liveNotifs) {
-        setNotifications(liveNotifs);
-        localStorage.setItem(KEYS.notifications, JSON.stringify(liveNotifs));
+    if (!uid) {
+      setNotificationsLoading(false);
+      return;
+    }
+
+    setNotificationsLoading(true);
+    setNotificationsError(null);
+
+    const unsubscribe = subscribeToNotifications(
+      uid,
+      (liveNotifs) => {
+        setNotifications(liveNotifs || []);
+        localStorage.setItem(KEYS.notifications, JSON.stringify(liveNotifs || []));
+        setNotificationsLoading(false);
+      },
+      (err) => {
+        setNotificationsError(err?.message || 'Failed to sync notifications');
+        setNotificationsLoading(false);
       }
-    });
+    );
+
     return () => unsubscribe();
   }, [uid]);
 
@@ -124,9 +143,88 @@ export function CampusDataProvider({ children }) {
     localStorage.setItem(KEYS.settings, JSON.stringify(settings));
   }, [settings]);
 
+  /**
+   * Helper to create a new notification in state and Firestore
+   */
+  const createNotification = useCallback(
+    async (notifData) => {
+      const recipientUid = notifData.userId || uid;
+      if (!recipientUid) return;
+
+      const newNotif = {
+        id: notifData.id || `notif_${Date.now()}`,
+        userId: recipientUid,
+        title: notifData.title || 'Campus Notification',
+        message: notifData.message || '',
+        type: notifData.type || 'system',
+        read: false,
+        createdAt: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
+        relatedId: notifData.relatedId || null,
+        relatedType: notifData.relatedType || notifData.type || 'system',
+        actionUrl: notifData.actionUrl || null,
+        icon: notifData.icon || 'Bell',
+      };
+
+      // Optimistically update local state if notification is for current user
+      if (recipientUid === uid) {
+        setNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
+      }
+
+      if (isFirebaseConfigured) {
+        try {
+          await createNotificationInDb(newNotif);
+        } catch (err) {
+          console.error('Error writing notification to Firestore:', err);
+        }
+      }
+    },
+    [uid]
+  );
+
   const addLostFoundItem = useCallback(
     async (item) => {
       setLostFoundItems((prev) => [item, ...prev]);
+
+      // 1. Create a confirmation notification for the poster
+      if (uid) {
+        createNotification({
+          userId: uid,
+          title: item.type === 'lost' ? 'Lost Item Reported' : 'Found Item Reported',
+          message: `Your report for "${item.title}" at ${item.location} is active on the campus board.`,
+          type: 'lost_found',
+          relatedId: item.id,
+          relatedType: 'lost_found',
+          actionUrl: '/lost-found',
+          icon: 'Search',
+        });
+      }
+
+      // 2. If item is "found", check if any other user reported a matching "lost" item
+      if (item.type === 'found') {
+        const itemWords = item.title.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+        const matches = lostFoundItems.filter(
+          (other) =>
+            other.type === 'lost' &&
+            other.postedBy &&
+            other.postedBy !== uid &&
+            (other.category === item.category ||
+              itemWords.some((w) => other.title.toLowerCase().includes(w)))
+        );
+
+        matches.forEach((matchedItem) => {
+          createNotification({
+            userId: matchedItem.postedBy,
+            title: 'Potential Match for Your Lost Item',
+            message: `A found item ("${item.title}") was reported at ${item.location}. Check the board to see if it's yours!`,
+            type: 'lost_found',
+            relatedId: item.id,
+            relatedType: 'lost_found',
+            actionUrl: '/lost-found',
+            icon: 'Search',
+          });
+        });
+      }
 
       if (isFirebaseConfigured) {
         try {
@@ -140,7 +238,7 @@ export function CampusDataProvider({ children }) {
         }
       }
     },
-    [uid, user]
+    [uid, user, createNotification, lostFoundItems]
   );
 
   const toggleEventRsvp = useCallback(
@@ -155,6 +253,23 @@ export function CampusDataProvider({ children }) {
         return next;
       });
 
+      // If registering, create an event confirmation notification
+      if (!isCurrentlyRegistered && uid) {
+        const event = eventsList.find((e) => e.id === eventId);
+        if (event) {
+          createNotification({
+            userId: uid,
+            title: `RSVP Confirmed: ${event.title}`,
+            message: `You're registered for ${event.title} on ${event.date} at ${event.location}.`,
+            type: 'event',
+            relatedId: eventId,
+            relatedType: 'event',
+            actionUrl: `/events/${eventId}`,
+            icon: 'Calendar',
+          });
+        }
+      }
+
       if (isFirebaseConfigured && uid) {
         try {
           await toggleEventRsvpInDb(uid, eventId, isCurrentlyRegistered);
@@ -163,7 +278,7 @@ export function CampusDataProvider({ children }) {
         }
       }
     },
-    [registeredEventIds, uid]
+    [registeredEventIds, uid, eventsList, createNotification]
   );
 
   const isEventRegistered = useCallback(
@@ -230,6 +345,9 @@ export function CampusDataProvider({ children }) {
       toggleEventRsvp,
       isEventRegistered,
       notifications,
+      notificationsLoading,
+      notificationsError,
+      createNotification,
       markNotificationRead,
       markAllNotificationsRead,
       deleteNotification,
@@ -247,6 +365,9 @@ export function CampusDataProvider({ children }) {
       toggleEventRsvp,
       isEventRegistered,
       notifications,
+      notificationsLoading,
+      notificationsError,
+      createNotification,
       markNotificationRead,
       markAllNotificationsRead,
       deleteNotification,

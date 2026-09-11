@@ -155,3 +155,19 @@
 .directions-footer {
   padding: 0 var(--space-lg) var(--space-lg);
 }
+
+/* ── Error bar (routing failure) ── */
+.directions-error-bar {
+  margin: 0 var(--space-lg) var(--space-md);
+  padding: 8px 12px;
+  background: var(--color-error-bg);
+  color: var(--color-error-dark);
+  border-radius: var(--rounded);
+  font: var(--text-body-sm);
+  font-weight: 600;
+}
+
+/* ── Spin animation (reuse in directions loading) ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

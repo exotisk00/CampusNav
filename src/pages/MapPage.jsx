@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Navigation,
@@ -6,8 +6,9 @@ import {
   Route,
   Building,
   X,
+  AlertCircle,
 } from 'lucide-react';
-import { campusLocations, locationCategories, mockDirections } from '../data/locations';
+import { campusLocations, locationCategories } from '../data/locations';
 import CampusMap from '../components/map/CampusMap';
 import DirectionsPanel from '../components/map/DirectionsPanel';
 import FilterChips from '../components/ui/FilterChips';
@@ -16,72 +17,184 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import './MapPage.css';
 
+// ── OSRM routing (free, no key needed) ──────────────────────
+const OSRM_BASE = 'https://router.project-osrm.org/route/v1/foot';
+
+async function fetchRoute(origin, dest) {
+  const url = `${OSRM_BASE}/${origin.lng},${origin.lat};${dest.lng},${dest.lat}?steps=true&geometries=geojson&overview=full`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.code !== 'Ok') throw new Error(data.message || 'Route not found');
+  const route = data.routes[0];
+  const leg   = route.legs[0];
+  return {
+    distance: leg.distance < 1000
+      ? `${Math.round(leg.distance)} m`
+      : `${(leg.distance / 1000).toFixed(1)} km`,
+    duration: leg.duration < 60
+      ? `${Math.round(leg.duration)} sec walk`
+      : `${Math.round(leg.duration / 60)} min walk`,
+    steps:    leg.steps,
+    geometry: route.geometry,   // GeoJSON LineString
+  };
+}
+
 export default function MapPage() {
   const [searchParams] = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedLocation, setSelectedLocation] = useState(campusLocations[0]);
-  const [isDirectionsMode, setIsDirectionsMode] = useState(false);
-  const [routeOrigin, setRouteOrigin] = useState('loc_010'); // Main Gate
-  const [routeDest, setRouteDest] = useState('loc_003'); // Central Library
-  const [activeDirections, setActiveDirections] = useState(null);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [searchQuery,       setSearchQuery]       = useState('');
+  const [selectedCategory,  setSelectedCategory]  = useState('All');
+  const [selectedLocation,  setSelectedLocation]  = useState(null);
+  const [isDirectionsMode,  setIsDirectionsMode]  = useState(false);
+  const [routeOriginId,     setRouteOriginId]     = useState('loc_010');
+  const [routeDestId,       setRouteDestId]       = useState('loc_003');
+  const [activeDirections,  setActiveDirections]  = useState(null);
+  const [routeGeometry,     setRouteGeometry]     = useState(null);
+  const [routeLoading,      setRouteLoading]      = useState(false);
+  const [mobileDrawerOpen,  setMobileDrawerOpen]  = useState(false);
+  // Geolocation
+  const [userLocation,      setUserLocation]      = useState(null);
+  const [locating,          setLocating]          = useState(false);
+  const [geoError,          setGeoError]          = useState(null);
+
+  const originLocation = useMemo(
+    () => campusLocations.find(l => l.id === routeOriginId) || campusLocations[9],
+    [routeOriginId]
+  );
+  const destLocation = useMemo(
+    () => campusLocations.find(l => l.id === routeDestId) || campusLocations[2],
+    [routeDestId]
+  );
 
   // Filtered list
   const filteredList = useMemo(() => {
-    return campusLocations.filter((loc) => {
-      const matchCat = selectedCategory === 'All' || loc.category === selectedCategory;
-      const matchSearch =
-        !searchQuery ||
+    return campusLocations.filter(loc => {
+      const matchCat    = selectedCategory === 'All' || loc.category === selectedCategory;
+      const matchSearch = !searchQuery ||
         loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         loc.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        loc.amenities.some((a) => a.toLowerCase().includes(searchQuery.toLowerCase()));
+        loc.amenities.some(a => a.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchCat && matchSearch;
     });
   }, [searchQuery, selectedCategory]);
 
-  const originLocation = campusLocations.find((l) => l.id === routeOrigin) || campusLocations[9];
-  const destLocation = campusLocations.find((l) => l.id === routeDest) || campusLocations[2];
-
+  // ── Deep-link from other pages ───────────────────────────────
   useEffect(() => {
     const locId = searchParams.get('location');
     if (!locId) return;
-    const loc = campusLocations.find((l) => l.id === locId);
+    const loc = campusLocations.find(l => l.id === locId);
     if (!loc) return;
     setSelectedLocation(loc);
-    setRouteDest(loc.id);
+    setRouteDestId(loc.id);
     if (searchParams.get('directions') === '1') {
-      setIsDirectionsMode(true);
-      setActiveDirections({
-        ...mockDirections,
-        from: originLocation.name,
-        to: loc.name,
-      });
+      startDirections(loc);
     }
-    // originLocation is current at mount; deep-link only needs dest
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const handleStartDirections = (destLoc) => {
-    if (destLoc) {
-      setRouteDest(destLoc.id);
+  // ── OSRM route fetch ────────────────────────────────────────
+  const fetchAndSetRoute = useCallback(async (from, to, fromLabel, toLabel) => {
+    setRouteLoading(true);
+    setActiveDirections({ from: fromLabel, to: toLabel, steps: [], duration: '…', distance: '…' });
+    setRouteGeometry(null);
+    try {
+      const result = await fetchRoute(from, to);
+      setRouteGeometry(result.geometry);
+      setActiveDirections({
+        from:     fromLabel,
+        to:       toLabel,
+        duration: result.duration,
+        distance: result.distance,
+        steps:    result.steps,
+      });
+    } catch (err) {
+      console.warn('OSRM routing error:', err);
+      setActiveDirections({
+        from:       fromLabel,
+        to:         toLabel,
+        duration:   'Unknown',
+        distance:   'Unknown',
+        steps:      [],
+        routeError: 'Could not calculate route. Showing approximate path.',
+      });
+    } finally {
+      setRouteLoading(false);
     }
-    setIsDirectionsMode(true);
-    setActiveDirections({
-      ...mockDirections,
-      from: originLocation.name,
-      to: destLoc ? destLoc.name : destLocation.name,
-    });
-  };
+  }, []);
 
-  const handleCloseDirections = () => {
+  const startDirections = useCallback((destLoc) => {
+    const dest = destLoc || destLocation;
+    setRouteDestId(dest.id);
+    setIsDirectionsMode(true);
+
+    // Use user's real location as origin if available
+    const fromCoords = userLocation?.lat
+      ? userLocation
+      : { lat: originLocation.lat, lng: originLocation.lng };
+    const fromLabel  = userLocation?.lat ? 'My Location' : originLocation.name;
+
+    fetchAndSetRoute(fromCoords, { lat: dest.lat, lng: dest.lng }, fromLabel, dest.name);
+  }, [destLocation, originLocation, userLocation, fetchAndSetRoute]);
+
+  const handleStartDirections = useCallback((destLoc) => {
+    startDirections(destLoc);
+  }, [startDirections]);
+
+  const handleCloseDirections = useCallback(() => {
     setIsDirectionsMode(false);
     setActiveDirections(null);
+    setRouteGeometry(null);
+  }, []);
+
+  // Re-fetch if route planner selects change
+  const handleOriginChange = (e) => {
+    const newOriginId = e.target.value;
+    setRouteOriginId(newOriginId);
+    if (isDirectionsMode) {
+      const newOrigin = campusLocations.find(l => l.id === newOriginId);
+      const fromCoords = { lat: newOrigin.lat, lng: newOrigin.lng };
+      fetchAndSetRoute(fromCoords, { lat: destLocation.lat, lng: destLocation.lng }, newOrigin.name, destLocation.name);
+    }
   };
+
+  const handleDestChange = (e) => {
+    const newDestId = e.target.value;
+    setRouteDestId(newDestId);
+    const newDest = campusLocations.find(l => l.id === newDestId);
+    setSelectedLocation(newDest);
+    if (isDirectionsMode) {
+      const fromCoords = userLocation?.lat
+        ? userLocation
+        : { lat: originLocation.lat, lng: originLocation.lng };
+      const fromLabel = userLocation?.lat ? 'My Location' : originLocation.name;
+      fetchAndSetRoute(fromCoords, { lat: newDest.lat, lng: newDest.lng }, fromLabel, newDest.name);
+    }
+  };
+
+  // ── Geolocation callback from CampusMap ─────────────────────
+  const handleUserLocation = useCallback((data) => {
+    if (data === 'requesting') {
+      setLocating(true);
+      setGeoError(null);
+      return;
+    }
+    setLocating(false);
+    if (data?.error) {
+      setGeoError(data.error);
+    } else if (data?.lat) {
+      setUserLocation(data);
+      setGeoError(null);
+
+      // Requirement 4: If destination is chosen & directions active, update route starting point to user GPS
+      if (isDirectionsMode && destLocation) {
+        fetchAndSetRoute(data, { lat: destLocation.lat, lng: destLocation.lng }, 'My Location', destLocation.name);
+      }
+    }
+  }, [isDirectionsMode, destLocation, fetchAndSetRoute]);
 
   return (
     <div className="map-page-wrapper">
-      {/* ── Left Sidebar (420px fixed on desktop) ── */}
+      {/* ── Left Sidebar ── */}
       <aside className={`map-sidebar ${mobileDrawerOpen ? 'mobile-expanded' : ''}`}>
         {/* Mobile handle bar */}
         <div
@@ -106,7 +219,7 @@ export default function MapPage() {
                 if (isDirectionsMode) {
                   handleCloseDirections();
                 } else {
-                  handleStartDirections(selectedLocation);
+                  handleStartDirections(selectedLocation || destLocation);
                 }
               }}
             >
@@ -114,7 +227,14 @@ export default function MapPage() {
             </Button>
           </div>
 
-          {/* Search bar */}
+          {/* Geo error banner */}
+          {geoError && (
+            <div className="geo-error-bar">
+              <AlertCircle size={14} />
+              <span>{geoError}</span>
+            </div>
+          )}
+
           <SearchBar
             value={searchQuery}
             onChange={setSearchQuery}
@@ -122,7 +242,6 @@ export default function MapPage() {
             className="map-search-bar"
           />
 
-          {/* Categories */}
           <FilterChips
             options={locationCategories}
             selected={selectedCategory}
@@ -131,31 +250,28 @@ export default function MapPage() {
           />
         </div>
 
-        {/* Route Planner Container when Directions Mode Active */}
+        {/* Route Planner */}
         {isDirectionsMode && (
           <div className="route-planner-box">
             <div className="planner-row">
               <div className="planner-dot origin-dot" />
               <div className="planner-select-wrap">
                 <label className="planner-label">Starting Point</label>
-                <select
-                  className="planner-select"
-                  value={routeOrigin}
-                  onChange={(e) => {
-                    setRouteOrigin(e.target.value);
-                    const newOrigin = campusLocations.find((l) => l.id === e.target.value);
-                    setActiveDirections((prev) => ({
-                      ...prev,
-                      from: newOrigin?.name || 'Origin',
-                    }));
-                  }}
-                >
-                  {campusLocations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </option>
-                  ))}
-                </select>
+                {userLocation?.lat ? (
+                  <div className="planner-location-badge">
+                    📍 My Current Location
+                  </div>
+                ) : (
+                  <select
+                    className="planner-select"
+                    value={routeOriginId}
+                    onChange={handleOriginChange}
+                  >
+                    {campusLocations.map(loc => (
+                      <option key={loc.id} value={loc.id}>{loc.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
 
@@ -167,30 +283,30 @@ export default function MapPage() {
                 <label className="planner-label">Destination</label>
                 <select
                   className="planner-select"
-                  value={routeDest}
-                  onChange={(e) => {
-                    setRouteDest(e.target.value);
-                    const newDest = campusLocations.find((l) => l.id === e.target.value);
-                    setSelectedLocation(newDest);
-                    setActiveDirections((prev) => ({
-                      ...prev,
-                      to: newDest?.name || 'Destination',
-                    }));
-                  }}
+                  value={routeDestId}
+                  onChange={handleDestChange}
                 >
-                  {campusLocations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </option>
+                  {campusLocations.map(loc => (
+                    <option key={loc.id} value={loc.id}>{loc.name}</option>
                   ))}
                 </select>
               </div>
             </div>
 
-            <div className="planner-summary-pill">
-              <Navigation size={14} />
-              <span>Est: 6 min walk • 0.4 km • Flat terrain</span>
-            </div>
+            {activeDirections && !routeLoading && (
+              <div className="planner-summary-pill">
+                <Navigation size={14} />
+                <span>
+                  {activeDirections.duration} • {activeDirections.distance} • Walking
+                </span>
+              </div>
+            )}
+            {routeLoading && (
+              <div className="planner-summary-pill">
+                <Navigation size={14} />
+                <span>Calculating route…</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -200,7 +316,7 @@ export default function MapPage() {
             <span>{filteredList.length} locations found</span>
           </div>
 
-          {filteredList.map((loc) => {
+          {filteredList.map(loc => {
             const isSelected = selectedLocation?.id === loc.id;
             return (
               <div
@@ -236,9 +352,7 @@ export default function MapPage() {
 
                 <div className="loc-item-amenities">
                   {loc.amenities.map((amenity, idx) => (
-                    <span key={idx} className="amenity-tag">
-                      {amenity}
-                    </span>
+                    <span key={idx} className="amenity-tag">{amenity}</span>
                   ))}
                 </div>
 
@@ -261,31 +375,36 @@ export default function MapPage() {
         </div>
       </aside>
 
-      {/* ── Right Canvas: Interactive Campus Map ── */}
+      {/* ── Right Canvas: Leaflet Map ── */}
       <main className="map-canvas-container">
         <CampusMap
           selectedLocation={selectedLocation}
-          onSelectLocation={(loc) => setSelectedLocation(loc)}
+          onSelectLocation={loc => setSelectedLocation(loc)}
           onGetDirections={handleStartDirections}
           searchQuery={searchQuery}
           activeCategory={selectedCategory}
           showRoute={isDirectionsMode}
           routeFrom={originLocation}
           routeTo={destLocation}
+          routeGeometry={routeGeometry}
+          userLocation={userLocation}
+          onUserLocation={handleUserLocation}
+          locating={locating}
         />
 
-        {/* Directions Step-by-Step Floating Overlay if active */}
-        {activeDirections && (
+        {/* Directions overlay */}
+        {(activeDirections || routeLoading) && (
           <div className="map-directions-overlay">
             <DirectionsPanel
               directions={activeDirections}
               onClose={handleCloseDirections}
+              loading={routeLoading}
             />
           </div>
         )}
 
-        {/* Selected Location Card floating on desktop */}
-        {selectedLocation && !activeDirections && (
+        {/* Selected location floating card (desktop only, hide when directions open) */}
+        {selectedLocation && !activeDirections && !routeLoading && (
           <div className="selected-location-floating-card">
             <div className="selected-card-header">
               <div>

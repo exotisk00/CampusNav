@@ -1,63 +1,135 @@
-/* ── Campus Map ── */
+/* ── Campus Map (Leaflet) ── */
 
 .campus-map-wrapper {
   position: relative;
   width: 100%;
   height: 100%;
   min-height: 400px;
-  background: var(--color-background);
   border-radius: var(--rounded-xl);
   overflow: hidden;
   border: 1px solid var(--color-border-subtle);
+  background: var(--color-background);
 }
 
-.campus-map-canvas {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: 400px;
-  transition: transform var(--transition-base);
-  transform-origin: center center;
-}
-
-.campus-map-svg {
+/* The div Leaflet mounts into */
+.campus-map-leaflet {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  z-index: 0;
 }
 
-.route-path {
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-  animation: drawRoute 2s ease-out forwards;
+/* Override Leaflet attribution to match theme */
+.campus-map-leaflet .leaflet-control-attribution {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(4px);
+  border-radius: 4px 0 0 0;
 }
-
-.campus-map-label {
+/* ── Layer Toggle (Street / Satellite) ── */
+.map-layer-toggle {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: var(--space-md);
+  right: var(--space-md);
+  z-index: 500;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  font: var(--text-headline-lg);
-  letter-spacing: var(--text-headline-lg-ls);
-  color: var(--color-border-strong);
-  opacity: 0.3;
-  pointer-events: none;
-  user-select: none;
-  text-align: center;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--rounded-full);
+  padding: 3px;
+  box-shadow: var(--shadow-level-2);
+  gap: 2px;
 }
 
-/* Map Controls */
+.layer-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--rounded-full);
+  font: var(--text-label-sm);
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.layer-toggle-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.layer-toggle-btn.active {
+  background: var(--color-primary);
+  color: #ffffff;
+  box-shadow: var(--shadow-level-1);
+}
+
+/* ── Live GPS Tracking Badge ── */
+.map-live-badge {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  z-index: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(37, 99, 235, 0.92);
+  color: #ffffff;
+  backdrop-filter: blur(8px);
+  padding: 5px 12px;
+  border-radius: var(--rounded-full);
+  font: var(--text-label-sm);
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: var(--shadow-level-2);
+}
+
+.map-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff;
+  animation: pulseRing 1.5s ease-out infinite;
+}
+
+/* ── Error Banner ── */
+.campus-map-error {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 600;
+  background: var(--color-error-bg);
+  color: var(--color-error-dark);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  padding: 8px 16px;
+  border-radius: var(--rounded);
+  font: var(--text-body-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--shadow-level-2);
+}
+
+/* ── Map Controls (our custom buttons, sits above tiles) ── */
 .campus-map-controls {
   position: absolute;
   bottom: var(--space-lg);
   right: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
+  z-index: 500;
+}
+
+.map-control-divider {
+  height: 1px;
+  background: var(--color-border-subtle);
+  margin: 2px 0;
 }
 
 .map-control-btn {
@@ -78,6 +150,61 @@
 .map-control-btn:hover {
   background: var(--color-background);
   border-color: var(--color-border-strong);
+  color: var(--color-primary);
+}
+
+.map-control-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ── Spin animation for locate loader ── */
+.spin-icon {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── User location dot ── */
+.user-dot {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  background: #2563EB;
+  border: 2.5px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.4);
+}
+
+.user-dot-ring {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(37, 99, 235, 0.35);
+  animation: pulseRing 1.8s ease-out infinite;
+}
+
+@keyframes pulseRing {
+  0%   { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* Leaflet icon containers — reset Leaflet default styles */
+.leaflet-marker-icon {
+  background: none !important;
+  border: none !important;
+}
+
+.user-location-icon {
+  background: none !important;
+  border: none !important;
+}
+
+/* ── Route path animation ── */
+.campus-map-wrapper .leaflet-overlay-pane path {
+  transition: stroke-dashoffset 1.5s ease;
 }
 
 @media (max-width: 767px) {

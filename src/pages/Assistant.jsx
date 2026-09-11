@@ -6,20 +6,38 @@ import {
   Sparkles,
   RotateCcw,
   Navigation,
+  Calendar,
+  Search,
+  ExternalLink,
+  Compass,
 } from 'lucide-react';
-import { getAssistantResponse, suggestedPrompts } from '../data/chatResponses';
+import {
+  getAiAssistantResponse,
+  getAiStatus,
+  quickActions,
+  suggestedPrompts,
+} from '../services/ai/aiAssistantService';
+import { useCampusData } from '../context/CampusDataContext';
 import Button from '../components/ui/Button';
 import './Assistant.css';
 
 export default function Assistant() {
   const navigate = useNavigate();
+  const { events, lostFoundItems } = useCampusData();
+  const aiStatus = getAiStatus();
 
   const [messages, setMessages] = useState([
     {
       id: 'welcome',
       sender: 'assistant',
-      text: "Hello! 👋 I'm your AI Campus Assistant. Ask me anything about campus locations, timings, parking, food court menus, hostel facilities, or directions!",
+      text: "Hello! 👋 I'm your CampusNav AI Assistant for Lovely Professional University (LPU).\n\nAsk me about campus buildings, walking directions on the interactive map, today's events, lost & found items, or campus facilities!",
       time: 'Just now',
+      action: {
+        type: 'NAVIGATE',
+        label: 'Open Interactive Campus Map',
+        url: '/map',
+      },
+      provider: aiStatus.providerName,
     },
   ]);
   const [input, setInput] = useState('');
@@ -30,9 +48,9 @@ export default function Assistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  const handleSend = (query = input) => {
+  const handleSend = async (query = input) => {
     const trimmed = query.trim();
-    if (!trimmed) return;
+    if (!trimmed || isTyping) return;
 
     const userMsg = {
       id: `usr_${Date.now()}`,
@@ -45,17 +63,40 @@ export default function Assistant() {
     setInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const reply = getAssistantResponse(trimmed);
+    try {
+      // Pass live Firestore context into AI engine
+      const response = await getAiAssistantResponse(trimmed, {
+        events: events || [],
+        lostFoundItems: lostFoundItems || [],
+      });
+
       const botMsg = {
         id: `bot_${Date.now()}`,
         sender: 'assistant',
-        text: reply,
+        text: response.text,
+        action: response.action,
+        provider: response.provider || aiStatus.providerName,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
+
       setMessages((prev) => [...prev, botMsg]);
+    } catch (err) {
+      console.error('Error in AI Assistant processing:', err);
+      const errorMsg = {
+        id: `bot_${Date.now()}`,
+        sender: 'assistant',
+        text: "I encountered an error retrieving that information. You can explore the interactive Campus Map or check live events using the quick actions below.",
+        action: {
+          type: 'NAVIGATE',
+          label: 'Open Campus Map',
+          url: '/map',
+        },
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
       setIsTyping(false);
-    }, 600);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -68,12 +109,26 @@ export default function Assistant() {
   const clearChat = () => {
     setMessages([
       {
-        id: 'welcome',
+        id: 'welcome_reset',
         sender: 'assistant',
-        text: "Chat cleared! How else can I assist you with your campus navigation today?",
+        text: "Chat cleared! How can I assist your campus navigation today?",
         time: 'Just now',
+        action: null,
       },
     ]);
+  };
+
+  const renderActionIcon = (type) => {
+    switch (type) {
+      case 'NAVIGATE':
+        return <Navigation size={14} />;
+      case 'VIEW_EVENTS':
+        return <Calendar size={14} />;
+      case 'VIEW_LOST_FOUND':
+        return <Search size={14} />;
+      default:
+        return <ExternalLink size={14} />;
+    }
   };
 
   return (
@@ -89,11 +144,11 @@ export default function Assistant() {
               <div className="assistant-title-row">
                 <h1 className="text-headline-sm">CampusNav AI Assistant</h1>
                 <span className="online-tag">
-                  <span className="online-dot" /> Online • Mock AI
+                  <span className="online-dot" /> {aiStatus.statusText}
                 </span>
               </div>
               <p className="text-body-sm text-secondary">
-                Instant campus guidance grounded in university directories, maps, and schedules.
+                Grounded in Lovely Professional University (LPU) campus map, live events, and directories.
               </p>
             </div>
           </div>
@@ -110,7 +165,7 @@ export default function Assistant() {
             <Button
               variant="primary"
               size="sm"
-              icon={Navigation}
+              icon={Compass}
               onClick={() => navigate('/map')}
             >
               Open Campus Map
@@ -135,8 +190,22 @@ export default function Assistant() {
                 <div className="msg-bubble-container">
                   <div className="msg-bubble">
                     <p className="msg-text">{msg.text}</p>
+                    {msg.action && (
+                      <button
+                        className="msg-action-btn"
+                        onClick={() => navigate(msg.action.url)}
+                      >
+                        {renderActionIcon(msg.action.type)}
+                        <span>{msg.action.label}</span>
+                      </button>
+                    )}
                   </div>
-                  <span className="msg-timestamp">{msg.time}</span>
+                  <div className="msg-timestamp">
+                    <span>{msg.time}</span>
+                    {msg.provider && (
+                      <span style={{ opacity: 0.7 }}>• {msg.provider}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -156,18 +225,32 @@ export default function Assistant() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Prompts Bar */}
+          {/* Quick Actions & Suggested Prompts Bar */}
           <div className="assistant-prompts-bar">
             <div className="prompts-bar-header">
               <Sparkles size={14} className="text-primary" />
-              <span>Suggested questions:</span>
+              <span>Quick actions:</span>
             </div>
-            <div className="prompts-chips-wrapper">
-              {suggestedPrompts.map((prompt, idx) => (
+            <div className="quick-actions-row">
+              {quickActions.map((action) => (
+                <button
+                  key={action.id}
+                  className="quick-action-chip"
+                  onClick={() => handleSend(action.query)}
+                  disabled={isTyping}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="prompts-chips-wrapper" style={{ marginTop: '4px' }}>
+              {suggestedPrompts.slice(0, 4).map((prompt, idx) => (
                 <button
                   key={idx}
                   className="prompt-chip-btn"
                   onClick={() => handleSend(prompt)}
+                  disabled={isTyping}
                 >
                   {prompt}
                 </button>
@@ -180,18 +263,19 @@ export default function Assistant() {
             <input
               type="text"
               className="assistant-text-input"
-              placeholder="Type your campus question (e.g. 'Where is the library?' or 'Food court hours')..."
+              placeholder="Ask about LPU buildings, directions, events, or lost & found..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
+              disabled={isTyping}
             />
             <Button
               variant="primary"
               onClick={() => handleSend()}
-              disabled={!input.trim()}
+              disabled={!input.trim() || isTyping}
               icon={Send}
             >
-              Send
+              {isTyping ? 'Thinking...' : 'Send'}
             </Button>
           </div>
         </div>
