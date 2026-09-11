@@ -1,0 +1,80 @@
+/* ── App Layout ── */
+
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+  animation: fadeIn var(--transition-base) ease-out;
+}
+
+/* ── Floating AI Assistant Button ── */
+.floating-ai-btn {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 54px;
+  height: 54px;
+  border-radius: var(--rounded-full);
+  background: linear-gradient(135deg, var(--color-primary), #ff8a50);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(242, 101, 34, 0.4);
+  cursor: pointer;
+  z-index: var(--z-sticky);
+  transition: all var(--transition-fast);
+}
+
+.floating-ai-btn:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 10px 24px rgba(242, 101, 34, 0.5);
+}
+
+.ai-btn-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-sparkle-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  color: #ffe066;
+}
+
+.ai-btn-tooltip {
+  position: absolute;
+  right: 64px;
+  background-color: var(--color-surface-dark);
+  color: #ffffff;
+  font: var(--text-label-sm);
+  padding: 6px 12px;
+  border-radius: var(--rounded);
+  white-space: nowrap;
+  box-shadow: var(--shadow-level-2);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(6px);
+  transition: all var(--transition-fast);
+}
+
+.floating-ai-btn:hover .ai-btn-tooltip {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+@media (max-width: 767px) {
+  .floating-ai-btn {
+    bottom: calc(var(--mobile-nav-height) + 16px);
+    right: 16px;
+    width: 48px;
+    height: 48px;
+  }
+}

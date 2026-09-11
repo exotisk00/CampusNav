@@ -1,0 +1,211 @@
+.event-details-page {
+  background-color: var(--color-background);
+}
+
+.event-details-container {
+  max-width: 960px;
+}
+
+.details-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--text-label-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  margin-bottom: var(--space-lg);
+  transition: color var(--transition-fast);
+}
+
+.details-back-btn:hover {
+  color: var(--color-primary);
+}
+
+.details-hero-card {
+  background-color: var(--color-surface);
+  border-radius: var(--rounded-xl);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-level-2);
+  padding: 36px;
+  margin-bottom: var(--space-xl);
+}
+
+.details-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.details-badge-group {
+  display: flex;
+  gap: 8px;
+}
+
+.details-action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.details-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--rounded);
+  border: 1px solid var(--color-border-subtle);
+  background-color: var(--color-surface-inactive);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.details-icon-btn:hover {
+  background-color: var(--color-surface);
+  border-color: var(--color-border-strong);
+}
+
+.details-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+
+.details-organizer {
+  font: var(--text-title-md);
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-xl);
+}
+
+.details-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  background-color: var(--color-surface-inactive);
+  border-radius: var(--rounded-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.schedule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.schedule-icon {
+  color: var(--color-primary);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.schedule-label {
+  display: block;
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.schedule-val {
+  display: block;
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+  margin-top: 2px;
+}
+
+.details-cta-bar {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+/* ── Content Grid ── */
+.details-body-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: var(--space-xl);
+}
+
+.details-main-content,
+.details-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.details-section-card {
+  background-color: var(--color-surface);
+  border-radius: var(--rounded-xl);
+  border: 1px solid var(--color-border-subtle);
+  padding: 28px;
+  box-shadow: var(--shadow-level-1);
+}
+
+.details-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.event-tag-pill {
+  font: var(--text-label-sm);
+  background-color: var(--color-surface-inactive);
+  color: var(--color-text-secondary);
+  padding: 4px 10px;
+  border-radius: var(--rounded-full);
+}
+
+.guidelines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--color-text-secondary);
+  font: var(--text-body-md);
+}
+
+.related-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.related-event-item {
+  padding: 12px;
+  border-radius: var(--rounded);
+  background-color: var(--color-surface-inactive);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+
+.related-event-item:hover {
+  background-color: #ffffff;
+  box-shadow: var(--shadow-level-1);
+  transform: translateX(4px);
+}
+
+.related-title {
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+}
+
+.related-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: var(--text-body-sm);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 800px) {
+  .details-body-grid {
+    grid-template-columns: 1fr;
+  }
+}

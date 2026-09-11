@@ -1,0 +1,149 @@
+/* ============================================
+   CampusNav Design Tokens
+   From DESIGN.md Stitch Specification
+   ============================================ */
+
+:root {
+  /* ── Primary Palette ── */
+  --color-primary: #F26522;
+  --color-primary-hover: #D95316;
+  --color-primary-active: #C0440E;
+  --color-primary-dark: #A63B00;
+  --color-primary-darker: #7F2B00;
+  --color-primary-darkest: #4F1800;
+  --color-primary-subtle: rgba(242, 101, 34, 0.08);
+  --color-primary-ring: rgba(242, 101, 34, 0.35);
+  --color-primary-ring-light: rgba(242, 101, 34, 0.2);
+  --color-primary-badge: rgba(242, 101, 34, 0.12);
+  --color-on-primary: #FFFFFF;
+
+  /* ── Secondary Palette (Teal) ── */
+  --color-secondary: #0D9488;
+  --color-secondary-hover: #0F766E;
+  --color-secondary-active: #115E59;
+  --color-secondary-subtle: rgba(13, 148, 136, 0.08);
+  --color-secondary-badge: rgba(13, 148, 136, 0.12);
+  --color-on-secondary: #FFFFFF;
+
+  /* ── Surface / Chrome Dark ── */
+  --color-surface-dark: #0F172A;
+  --color-surface-dark-muted: #1E293B;
+  --color-surface-dark-text: #94A3B8;
+  --color-surface-dark-hover: rgba(255, 255, 255, 0.08);
+
+  /* ── Neutral Canvas & Surfaces ── */
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-inactive: #F1F5F9;
+  --color-border-subtle: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #64748B;
+  --color-text-muted: #94A3B8;
+  --color-text-inverse: #FFFFFF;
+
+  /* ── Stitch Material Surfaces ── */
+  --color-stitch-surface: #faf8ff;
+  --color-stitch-surface-dim: #d2d9f4;
+  --color-stitch-surface-container: #eaedff;
+  --color-stitch-surface-container-high: #e2e7ff;
+  --color-stitch-surface-container-highest: #dae2fd;
+  --color-stitch-on-surface: #131b2e;
+
+  /* ── Error ── */
+  --color-error: #EF4444;
+  --color-error-dark: #BA1A1A;
+  --color-error-bg: #FFDAD6;
+  --color-error-ring: rgba(239, 68, 68, 0.15);
+  --color-on-error: #FFFFFF;
+
+  /* ── Success ── */
+  --color-success: #22C55E;
+  --color-success-text: #0F766E;
+
+  /* ── Warning ── */
+  --color-warning-text: #D95316;
+
+  /* ── Typography ── */
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+
+  /* Display */
+  --text-display-lg: 800 48px/56px var(--font-display);
+  --text-display-lg-ls: -0.025em;
+  --text-display-lg-mobile: 800 36px/44px var(--font-display);
+  --text-display-lg-mobile-ls: -0.02em;
+
+  /* Headline */
+  --text-headline-lg: 700 32px/40px var(--font-display);
+  --text-headline-lg-ls: -0.02em;
+  --text-headline-lg-mobile: 700 26px/34px var(--font-display);
+  --text-headline-lg-mobile-ls: -0.015em;
+  --text-headline-md: 600 24px/32px var(--font-display);
+  --text-headline-md-ls: -0.015em;
+  --text-headline-sm: 600 20px/28px var(--font-display);
+  --text-headline-sm-ls: -0.01em;
+
+  /* Title */
+  --text-title-md: 600 16px/24px var(--font-display);
+  --text-title-md-ls: -0.005em;
+
+  /* Body */
+  --text-body-lg: 400 16px/24px var(--font-body);
+  --text-body-md: 400 14px/20px var(--font-body);
+  --text-body-sm: 400 12px/16px var(--font-body);
+  --text-body-sm-ls: 0.01em;
+
+  /* Label */
+  --text-label-lg: 600 14px/20px var(--font-body);
+  --text-label-lg-ls: 0.005em;
+  --text-label-md: 600 12px/16px var(--font-body);
+  --text-label-md-ls: 0.02em;
+  --text-label-sm: 700 11px/14px var(--font-body);
+  --text-label-sm-ls: 0.04em;
+
+  /* ── Spacing (8pt grid) ── */
+  --space-xs: 0.25rem;   /* 4px */
+  --space-sm: 0.5rem;    /* 8px */
+  --space-md: 1rem;      /* 16px */
+  --space-lg: 1.5rem;    /* 24px */
+  --space-xl: 2rem;      /* 32px */
+  --space-2xl: 3rem;     /* 48px */
+  --space-3xl: 4rem;     /* 64px */
+  --gutter: 1.5rem;
+  --gutter-mobile: 1rem;
+  --margin: 2rem;
+  --margin-mobile: 1rem;
+
+  /* ── Rounded Corners ── */
+  --rounded-sm: 0.25rem;   /* 4px */
+  --rounded: 0.5rem;       /* 8px - base */
+  --rounded-md: 0.75rem;   /* 12px */
+  --rounded-lg: 1rem;      /* 16px */
+  --rounded-xl: 1.5rem;    /* 24px */
+  --rounded-full: 9999px;
+
+  /* ── Elevation Shadows ── */
+  --shadow-level-1: 0 1px 3px 0 rgba(15, 23, 42, 0.05);
+  --shadow-level-2: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --shadow-level-3: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
+  --shadow-level-4: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+
+  /* ── Transitions ── */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Z-index layers ── */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+
+  /* ── Layout ── */
+  --navbar-height: 64px;
+  --sidebar-width: 260px;
+  --mobile-nav-height: 64px;
+}

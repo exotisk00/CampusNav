@@ -1,0 +1,214 @@
+.events-page {
+  background-color: var(--color-background);
+}
+
+.events-header {
+  margin-bottom: var(--space-xl);
+}
+
+.events-header-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--text-label-sm);
+  color: var(--color-primary);
+  text-transform: uppercase;
+  margin-bottom: var(--space-xs);
+}
+
+.events-title {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.events-subtitle {
+  font: var(--text-body-lg);
+  color: var(--color-text-secondary);
+  max-width: 680px;
+}
+
+/* ── Controls Bar ── */
+.events-controls-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--rounded-xl);
+  padding: 20px;
+  box-shadow: var(--shadow-level-1);
+  margin-bottom: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.events-search-bar {
+  width: 100%;
+}
+
+.events-categories-scroll {
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+/* ── Grid ── */
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+.event-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--rounded-xl);
+  padding: 24px;
+  box-shadow: var(--shadow-level-1);
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.event-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-level-2);
+}
+
+.event-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.event-date-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--rounded-md);
+  background-color: var(--color-surface-dark);
+  color: #fff;
+}
+
+.event-month {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+}
+
+.event-day {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.event-card-badges {
+  display: flex;
+  gap: 6px;
+}
+
+.event-card-title {
+  font: var(--text-headline-sm);
+  font-size: 19px;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+
+.event-card-organizer {
+  font: var(--text-body-sm);
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+}
+
+.event-card-desc {
+  font: var(--text-body-md);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-bottom: var(--space-md);
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.event-card-info-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--space-md);
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.event-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.info-icon {
+  color: var(--color-text-muted);
+}
+
+/* ── Attendance Bar ── */
+.event-attendance-section {
+  margin-bottom: var(--space-md);
+}
+
+.attendance-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.attendance-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.attendance-progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: var(--rounded-full);
+  background-color: var(--color-surface-inactive);
+  overflow: hidden;
+}
+
+.attendance-progress-bar {
+  height: 100%;
+  border-radius: var(--rounded-full);
+  transition: width var(--transition-base);
+}
+
+.event-card-footer {
+  margin-top: auto;
+}
+
+/* ── Empty State ── */
+.events-empty-state {
+  grid-column: 1 / -1;
+  padding: 60px 20px;
+  text-align: center;
+  background-color: var(--color-surface);
+  border-radius: var(--rounded-xl);
+  border: 1px dashed var(--color-border-strong);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}

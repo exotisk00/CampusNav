@@ -1,0 +1,180 @@
+.settings-page {
+  background-color: var(--color-background);
+}
+
+.settings-container {
+  max-width: 780px;
+}
+
+.settings-header {
+  margin-bottom: var(--space-xl);
+}
+
+.settings-header-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--text-label-sm);
+  color: var(--color-primary);
+  text-transform: uppercase;
+  margin-bottom: var(--space-xs);
+}
+
+.settings-title {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.settings-subtitle {
+  font: var(--text-body-lg);
+  color: var(--color-text-secondary);
+  max-width: 600px;
+}
+
+.settings-saved-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: var(--color-secondary-badge);
+  color: var(--color-secondary-hover);
+  border-radius: var(--rounded);
+  font: var(--text-label-md);
+  margin-bottom: var(--space-lg);
+  animation: fadeIn var(--transition-fast) ease-out;
+}
+
+.settings-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--rounded-xl);
+  padding: 28px;
+  box-shadow: var(--shadow-level-1);
+}
+
+.settings-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.section-icon {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.settings-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toggle-label {
+  font: var(--text-title-md);
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
+
+.toggle-sub {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.toggle-switch {
+  width: 44px;
+  height: 24px;
+  appearance: none;
+  background-color: var(--color-border-strong);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.toggle-switch:checked {
+  background-color: var(--color-primary);
+}
+
+.toggle-switch::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  transition: transform var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch:checked::before {
+  transform: translateX(20px);
+}
+
+/* ── Danger Zone ── */
+.danger-zone-card {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.text-error {
+  color: var(--color-error);
+}
+
+.danger-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.danger-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.danger-label {
+  font: var(--text-title-md);
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
+
+.danger-sub {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.settings-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}

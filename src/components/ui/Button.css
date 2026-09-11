@@ -1,0 +1,136 @@
+/* ── Button Component ── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  font: var(--text-label-lg);
+  letter-spacing: var(--text-label-lg-ls);
+  border-radius: var(--rounded);
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--color-primary-ring);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Sizes */
+.btn-sm {
+  padding: 6px 12px;
+  font: var(--text-label-md);
+  letter-spacing: var(--text-label-md-ls);
+  border-radius: var(--rounded-sm);
+}
+
+.btn-md {
+  padding: 10px 20px;
+  height: 40px;
+}
+
+.btn-lg {
+  padding: 12px 28px;
+  height: 48px;
+  font-size: 15px;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+/* Primary */
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: var(--color-primary-active);
+}
+
+/* Secondary */
+.btn-secondary {
+  background: var(--color-secondary);
+  color: var(--color-on-secondary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-secondary-hover);
+}
+
+.btn-secondary:active:not(:disabled) {
+  background: var(--color-secondary-active);
+}
+
+/* Outline */
+.btn-outline {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--color-surface-inactive);
+  border-color: var(--color-text-muted);
+}
+
+/* Ghost */
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-surface-inactive);
+  color: var(--color-text-primary);
+}
+
+/* Ghost Dark (for dark chrome) */
+.btn-ghost-dark {
+  background: transparent;
+  color: var(--color-surface-dark-text);
+}
+
+.btn-ghost-dark:hover:not(:disabled) {
+  background: var(--color-surface-dark-hover);
+  color: var(--color-text-inverse);
+}
+
+/* Danger */
+.btn-danger {
+  background: var(--color-error);
+  color: var(--color-on-error);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-error-dark);
+}
+
+/* Loading Spinner */
+.btn-loading {
+  pointer-events: none;
+}
+
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}

@@ -1,0 +1,69 @@
+/* ── Map Pin ── */
+
+.map-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  z-index: 2;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: transform var(--transition-fast);
+}
+
+.map-pin:hover {
+  transform: translate(-50%, -100%) scale(1.1);
+  z-index: 5;
+}
+
+.map-pin-marker {
+  width: 32px;
+  height: 32px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(242, 101, 34, 0.3);
+  transition: background var(--transition-fast);
+}
+
+.map-pin-marker > * {
+  transform: rotate(45deg);
+}
+
+.map-pin-selected .map-pin-marker {
+  background: var(--color-surface-dark);
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.3);
+}
+
+.map-pin-label {
+  margin-top: 4px;
+  font: var(--text-label-sm);
+  letter-spacing: var(--text-label-sm-ls);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  padding: 2px 6px;
+  border-radius: var(--rounded-sm);
+  box-shadow: var(--shadow-level-1);
+  white-space: nowrap;
+  text-transform: none;
+  font-weight: 600;
+}
+
+.map-pin-pulse {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  animation: pinPulse 2s infinite;
+  pointer-events: none;
+}
